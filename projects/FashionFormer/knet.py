@@ -1,3 +1,4 @@
+import imageio
 import torch
 import torch.nn.functional as F
 from mmdet.models.builder import DETECTORS
@@ -17,6 +18,7 @@ from matplotlib.collections import PatchCollection
 
 EPS = 1e-2
 
+
 @DETECTORS.register_module()
 class FashionFormer(TwoStageDetector):
 
@@ -33,27 +35,56 @@ class FashionFormer(TwoStageDetector):
         self.num_stuff_classes = num_stuff_classes
         self.mask_assign_stride = mask_assign_stride
         self.thing_label_in_seg = thing_label_in_seg
-        self.attr_classes = ('classic', 'polo', 'undershirt', 'henley', 'ringer', 'raglan', 'rugby', 'sailor', 'crop', 'halter', 'camisole', 'tank', 'peasant', 'tube', 
-        'tunic', 'smock', 'hoodie', 'blazer', 'pea', 'puffer', 'biker', 'trucker', 'bomber', 'anorak', 'safari', 'mao', 'nehru', 'norfolk', 'classic military', 'track', 
-        'windbreaker', 'chanel', 'bolero', 'tuxedo', 'varsity', 'crop', 'jeans', 'sweatpants', 'leggings', 'hip-huggers', 'cargo', 'culottes', 'capri', 'harem', 'sailor', 
-        'jodhpur', 'peg', 'camo', 'track', 'crop', 'short', 'booty', 'bermuda', 'cargo', 'trunks', 'boardshorts', 'skort', 'roll-up', 'tie-up', 'culotte', 'lounge', 'bloomers', 
-        'tutu', 'kilt', 'wrap', 'skater', 'cargo', 'hobble', 'sheath', 'ball gown', 'gypsy', 'rah-rah', 'prairie', 'flamenco', 'accordion', 'sarong', 'tulip', 'dirndl', 'godet', 
-        'blanket', 'parka', 'trench', 'pea', 'shearling', 'teddy bear', 'puffer', 'duster', 'raincoat', 'kimono', 'robe', 'dress (coat )', 'duffle', 'wrap', 'military', 'swing', 
-        'halter', 'wrap', 'chemise', 'slip', 'cheongsams', 'jumper', 'shift', 'sheath', 'shirt', 'sundress', 'kaftan', 'bodycon', 'nightgown', 'gown', 'sweater', 'tea', 'blouson', 
-        'tunic', 'skater', 'asymmetrical', 'symmetrical', 'peplum', 'circle', 'flare', 'fit and flare', 'trumpet', 'mermaid', 'balloon', 'bell', 'bell bottom', 'bootcut', 'peg', 
-        'pencil', 'straight', 'a-line', 'tent', 'baggy', 'wide leg', 'high low', 'curved', 'tight', 'regular', 'loose', 'oversized', 'empire waistline', 'dropped waistline', 
-        'high waist', 'normal waist', 'low waist', 'basque', 'no waistline', 'above-the-hip', 'hip', 'micro', 'mini', 'above-the-knee', 'knee', 'below the knee', 'midi', 'maxi', 
-        'floor', 'sleeveless', 'short', 'elbow-length', 'three quarter', 'wrist-length', 'asymmetric', 'regular', 'shirt', 'polo', 'chelsea', 'banded', 'mandarin', 'peter pan', 'bow',
-        'stand-away', 'jabot', 'sailor', 'oversized', 'notched', 'peak', 'shawl', 'napoleon', 'oversized', 'collarless', 'asymmetric', 'crew', 'round', 'v-neck', 'surplice', 'oval',
-        'u-neck', 'sweetheart', 'queen anne', 'boat', 'scoop', 'square', 'plunging', 'keyhole', 'halter', 'crossover', 'choker', 'high', 'turtle', 'cowl', 'straight across', 'illusion', 
-        'off-the-shoulder', 'one shoulder', 'set-in sleeve', 'dropped-shoulder sleeve', 'ragla', 'cap', 'tulip', 'puff', 'bell', 'circular flounce', 'poet', 'dolma, batwing', 'bishop', 
-        'leg of mutto', 'kimono', 'cargo', 'patch', 'welt', 'kangaroo', 'seam', 'slash', 'curved', 'flap', 'single breasted', 'double breasted', 'lace up', 'wrapping', 'zip-up', 
-        'fly', 'chained', 'buckled', 'toggled', 'no opening', 'plastic', 'rubber', 'metal', 'feather', 'gem', 'bone', 'ivory', 'fur', 'suede', 'shearling', 'crocodile', 'snakeskin', 
-        'wood', 'non-textile material', 'burnout', 'distressed', 'washed', 'embossed', 'frayed', 'printed', 'ruched', 'quilted', 'pleat', 'gathering', 'smocking', 'tiered', 'cutout', 
-        'slit', 'perforated', 'lining', 'applique', 'bead', 'rivet', 'sequin', 'no special manufacturing technique', 'plain', 'abstract', 'cartoon', 'letters, numbers', 'camouflage',
-        'check', 'dot', 'fair isle', 'floral', 'geometric', 'paisley', 'stripe', 'houndstooth', 'herringbone', 'chevron', 'argyle', 'leopard', 'snakeskin', 'cheetah', 'peacock', 
-        'zebra', 'giraffe', 'toile de jouy', 'plant')
-    
+        self.attr_classes = (
+            'classic', 'polo', 'undershirt', 'henley', 'ringer', 'raglan', 'rugby', 'sailor', 'crop', 'halter',
+            'camisole',
+            'tank', 'peasant', 'tube',
+            'tunic', 'smock', 'hoodie', 'blazer', 'pea', 'puffer', 'biker', 'trucker', 'bomber', 'anorak', 'safari',
+            'mao',
+            'nehru', 'norfolk', 'classic military', 'track',
+            'windbreaker', 'chanel', 'bolero', 'tuxedo', 'varsity', 'crop', 'jeans', 'sweatpants', 'leggings',
+            'hip-huggers', 'cargo', 'culottes', 'capri', 'harem', 'sailor',
+            'jodhpur', 'peg', 'camo', 'track', 'crop', 'short', 'booty', 'bermuda', 'cargo', 'trunks', 'boardshorts',
+            'skort', 'roll-up', 'tie-up', 'culotte', 'lounge', 'bloomers',
+            'tutu', 'kilt', 'wrap', 'skater', 'cargo', 'hobble', 'sheath', 'ball gown', 'gypsy', 'rah-rah', 'prairie',
+            'flamenco', 'accordion', 'sarong', 'tulip', 'dirndl', 'godet',
+            'blanket', 'parka', 'trench', 'pea', 'shearling', 'teddy bear', 'puffer', 'duster', 'raincoat', 'kimono',
+            'robe', 'dress (coat )', 'duffle', 'wrap', 'military', 'swing',
+            'halter', 'wrap', 'chemise', 'slip', 'cheongsams', 'jumper', 'shift', 'sheath', 'shirt', 'sundress',
+            'kaftan',
+            'bodycon', 'nightgown', 'gown', 'sweater', 'tea', 'blouson',
+            'tunic', 'skater', 'asymmetrical', 'symmetrical', 'peplum', 'circle', 'flare', 'fit and flare', 'trumpet',
+            'mermaid', 'balloon', 'bell', 'bell bottom', 'bootcut', 'peg',
+            'pencil', 'straight', 'a-line', 'tent', 'baggy', 'wide leg', 'high low', 'curved', 'tight', 'regular',
+            'loose',
+            'oversized', 'empire waistline', 'dropped waistline',
+            'high waist', 'normal waist', 'low waist', 'basque', 'no waistline', 'above-the-hip', 'hip', 'micro',
+            'mini',
+            'above-the-knee', 'knee', 'below the knee', 'midi', 'maxi',
+            'floor', 'sleeveless', 'short', 'elbow-length', 'three quarter', 'wrist-length', 'asymmetric', 'regular',
+            'shirt', 'polo', 'chelsea', 'banded', 'mandarin', 'peter pan', 'bow',
+            'stand-away', 'jabot', 'sailor', 'oversized', 'notched', 'peak', 'shawl', 'napoleon', 'oversized',
+            'collarless',
+            'asymmetric', 'crew', 'round', 'v-neck', 'surplice', 'oval',
+            'u-neck', 'sweetheart', 'queen anne', 'boat', 'scoop', 'square', 'plunging', 'keyhole', 'halter',
+            'crossover',
+            'choker', 'high', 'turtle', 'cowl', 'straight across', 'illusion',
+            'off-the-shoulder', 'one shoulder', 'set-in sleeve', 'dropped-shoulder sleeve', 'ragla', 'cap', 'tulip',
+            'puff',
+            'bell', 'circular flounce', 'poet', 'dolma, batwing', 'bishop',
+            'leg of mutto', 'kimono', 'cargo', 'patch', 'welt', 'kangaroo', 'seam', 'slash', 'curved', 'flap',
+            'single breasted', 'double breasted', 'lace up', 'wrapping', 'zip-up',
+            'fly', 'chained', 'buckled', 'toggled', 'no opening', 'plastic', 'rubber', 'metal', 'feather', 'gem',
+            'bone',
+            'ivory', 'fur', 'suede', 'shearling', 'crocodile', 'snakeskin',
+            'wood', 'non-textile material', 'burnout', 'distressed', 'washed', 'embossed', 'frayed', 'printed',
+            'ruched',
+            'quilted', 'pleat', 'gathering', 'smocking', 'tiered', 'cutout',
+            'slit', 'perforated', 'lining', 'applique', 'bead', 'rivet', 'sequin', 'no special manufacturing technique',
+            'plain', 'abstract', 'cartoon', 'letters, numbers', 'camouflage',
+            'check', 'dot', 'fair isle', 'floral', 'geometric', 'paisley', 'stripe', 'houndstooth', 'herringbone',
+            'chevron', 'argyle', 'leopard', 'snakeskin', 'cheetah', 'peacock',
+            'zebra', 'giraffe', 'toile de jouy', 'plant')
 
     def forward_train(self,
                       img,
@@ -214,18 +245,18 @@ class FashionFormer(TwoStageDetector):
         return roi_outs
 
     def _show_result(self,
-                    img,
-                    result,
-                    score_thr=0.3,
-                    bbox_color=(72, 101, 241),
-                    text_color=(72, 101, 241),
-                    mask_color=None,
-                    thickness=2,
-                    font_size=13,
-                    win_name='',
-                    show=False,
-                    wait_time=0,
-                    out_file=None):
+                     img,
+                     result,
+                     score_thr=0.3,
+                     bbox_color=(72, 101, 241),
+                     text_color=(72, 101, 241),
+                     mask_color=None,
+                     thickness=2,
+                     font_size=13,
+                     win_name='',
+                     show=False,
+                     wait_time=0,
+                     out_file=None):
         img = mmcv.imread(img)
         img = img.copy()
         if isinstance(result, tuple):
@@ -253,10 +284,10 @@ class FashionFormer(TwoStageDetector):
         if out_file is not None:
             show = False
         # draw bounding boxes
-        img = self.imshow_det_bboxes(img, bboxes, labels, segms, attrs, class_names=self.CLASSES, 
-                            score_thr=score_thr, bbox_color=bbox_color, text_color=text_color,
-                            mask_color=mask_color, thickness=thickness, font_size=font_size, 
-                            win_name=win_name, show=show, wait_time=wait_time,out_file=out_file)
+        img = self.imshow_det_bboxes(img, bboxes, labels, segms, attrs, class_names=self.CLASSES,
+                                     score_thr=score_thr, bbox_color=bbox_color, text_color=text_color,
+                                     mask_color=mask_color, thickness=thickness, font_size=font_size,
+                                     win_name=win_name, show=show, wait_time=wait_time, out_file=out_file)
 
         if not (show or out_file):
             return img
@@ -266,13 +297,16 @@ class FashionFormer(TwoStageDetector):
         color = [color / 255 for color in color[::-1]]
         return tuple(color)
 
-    def imshow_det_bboxes(self, img, bboxes, labels, segms=None, attrs=None, class_names=None, score_thr=0,bbox_color='green', text_color='green',
-                        mask_color=None, thickness=2, font_size=13, win_name='', show=True, wait_time=0, out_file=None):
-       
+    def imshow_det_bboxes(self, img, bboxes, labels, segms=None, attrs=None, class_names=None, score_thr=0,
+                          bbox_color='green', text_color='green',
+                          mask_color=None, thickness=2, font_size=13, win_name='', show=True, wait_time=0,
+                          out_file=None):
+
         assert bboxes.ndim == 2, ' bboxes ndim should be 2, but its ndim is {bboxes.ndim}.'
         assert labels.ndim == 1, ' labels ndim should be 1, but its ndim is {labels.ndim}.'
         assert bboxes.shape[0] == labels.shape[0], 'bboxes.shape[0] and labels.shape[0] should have the same length.'
-        assert bboxes.shape[1] == 4 or bboxes.shape[1] == 5, ' bboxes.shape[1] should be 4 or 5, but its {bboxes.shape[1]}.'
+        assert bboxes.shape[1] == 4 or bboxes.shape[
+            1] == 5, ' bboxes.shape[1] should be 4 or 5, but its {bboxes.shape[1]}.'
         img = mmcv.imread(img).astype(np.uint8)
 
         if score_thr > 0:
@@ -284,21 +318,29 @@ class FashionFormer(TwoStageDetector):
             labels = labels[inds]
             if segms is not None:
                 segms = segms[inds, ...]
-        mask_colors = [[[100,  78, 126]],[[136,  37,  47]],[[ 85,  36, 238]],[[193, 213,  73]], [[172, 188,   2]], 
-            [[ 63, 196, 237]], [[153, 191,  17]], [[158,  45, 198]], [[182,  50, 243]], [[ 91, 156, 104]], [[140,  37, 146]], 
-            [[205,   2, 150]],  [[ 97, 155, 243]],[[ 44, 137,  32]], [[15, 37, 24]], [[111,  33,   6]], [[ 88,  65, 192]], 
-            [[245,  14, 230]], [[ 62, 227, 253]], [[154,  23, 197]], [[ 28, 188, 151]], [[  9,  89, 226]], [[ 57, 240, 104]], 
-            [[155,  75, 165]], [[138,  57, 162]], [[ 28, 177,  46]], [[102, 177, 173]], [[  0, 110, 167]],[[  2,  96, 220]], 
-            [[217,  50, 200]], [[ 26, 172, 208]], [[238, 142,  86]],  [[ 54, 196, 241]], [[120, 145,  79]],[[ 73,  67, 114]], 
-            [[ 20, 171,  36]], [[ 52, 105, 116]], [[ 35, 180,  90]], [[182,  48,  97]], [[ 44,  14, 127]], [[ 79,  90, 198]], 
-            [[224, 117,  79]], [[ 22, 126,  35]], [[ 27, 203,  96]], [[52,  0, 27]],   [[202, 228,  99]], [[130, 114,  41]], 
-            [[ 87, 135, 233]], [[131, 246,  47]],  [[241, 149, 237]]]
+        mask_colors = [[[100, 78, 126]], [[136, 37, 47]], [[85, 36, 238]], [[193, 213, 73]], [[172, 188, 2]],
+                       [[63, 196, 237]], [[153, 191, 17]], [[158, 45, 198]], [[182, 50, 243]], [[91, 156, 104]],
+                       [[140, 37, 146]],
+                       [[205, 2, 150]], [[97, 155, 243]], [[44, 137, 32]], [[15, 37, 24]], [[111, 33, 6]],
+                       [[88, 65, 192]],
+                       [[245, 14, 230]], [[62, 227, 253]], [[154, 23, 197]], [[28, 188, 151]], [[9, 89, 226]],
+                       [[57, 240, 104]],
+                       [[155, 75, 165]], [[138, 57, 162]], [[28, 177, 46]], [[102, 177, 173]], [[0, 110, 167]],
+                       [[2, 96, 220]],
+                       [[217, 50, 200]], [[26, 172, 208]], [[238, 142, 86]], [[54, 196, 241]], [[120, 145, 79]],
+                       [[73, 67, 114]],
+                       [[20, 171, 36]], [[52, 105, 116]], [[35, 180, 90]], [[182, 48, 97]], [[44, 14, 127]],
+                       [[79, 90, 198]],
+                       [[224, 117, 79]], [[22, 126, 35]], [[27, 203, 96]], [[52, 0, 27]], [[202, 228, 99]],
+                       [[130, 114, 41]],
+                       [[87, 135, 233]], [[131, 246, 47]], [[241, 149, 237]]]
         mask_colors = [np.array(c) for c in mask_colors]
-        
+
         bbox_color = self.color_val_matplotlib(bbox_color)
         text_color = self.color_val_matplotlib(text_color)
 
         img = mmcv.bgr2rgb(img)
+        msk = np.zeros_like(img)
         width, height = img.shape[1], img.shape[0]
         img = np.ascontiguousarray(img)
 
@@ -318,15 +360,19 @@ class FashionFormer(TwoStageDetector):
         bboxes = mask_to_bbox(segms)
         polygons = []
         color = []
+        result = []
         for i, (bbox, label) in enumerate(zip(bboxes, labels)):
             bbox_int = bbox.astype(np.int32)
             color.append(bbox_color)
-            label_text = ''
+            attributes = []
             for idx in attrs[i].nonzero()[0]:
-                label_text = label_text +  self.attr_classes[idx] + '\n'
-            # label_text = class_names[label] if class_names is not None else f'class {label}'
-            # if len(bbox) > 4:
-            #     label_text += f'|{bbox[-1]:.02f}'
+                attributes.append(self.attr_classes[idx])
+                attr_text = ','.join(attributes) #label_text + self.attr_classes[idx] + ','  # + '\n'
+            label_text = f"{class_names[label]}: {attr_text}" if attributes else f'{class_names[label]}'
+            res = {'class': class_names[label], 'attributes': list(attributes), 'bbox': list(bbox_int)}
+
+            if len(bbox) > 4:
+                label_text += f'|{bbox[-1]:.02f}'
             ax.text(
                 bbox_int[1],
                 bbox_int[0],
@@ -337,14 +383,19 @@ class FashionFormer(TwoStageDetector):
                     'pad': 0.7,
                     'edgecolor': 'none'
                 },
-                color=text_color, 
+                color=text_color,
                 fontsize=font_size,
                 verticalalignment='top',
                 horizontalalignment='left')
             if segms is not None:
                 color_mask = mask_colors[labels[i]]
+                res['color'] = color_mask.tolist()[0]
                 mask = segms[i].astype(bool)
                 img[mask] = img[mask] * 0.5 + color_mask * 0.5
+                msk[mask] = color_mask
+                imageio.imwrite('msk.png', msk)
+
+            result.append(res)
 
         plt.imshow(img)
 
@@ -356,8 +407,9 @@ class FashionFormer(TwoStageDetector):
         buffer = np.frombuffer(stream, dtype='uint8')
         img_rgba = buffer.reshape(height, width, 4)
         rgb, alpha = np.split(img_rgba, [3], axis=2)
-        img = rgb.astype('uint8')
-        img = mmcv.rgb2bgr(img)
+        img_overlay = rgb.astype('uint8')
+        msk_multiple = msk.astype('uint8')
+        img = mmcv.rgb2bgr(img_overlay)
 
         if show:
             # We do not use cv2 for display because in some cases, opencv will
@@ -373,5 +425,6 @@ class FashionFormer(TwoStageDetector):
             mmcv.imwrite(img, out_file)
 
         plt.close()
+        print(result)
 
-        return img
+        return img_overlay, msk_multiple, result
