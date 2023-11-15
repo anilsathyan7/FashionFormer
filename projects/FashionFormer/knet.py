@@ -369,7 +369,7 @@ class FashionFormer(TwoStageDetector):
                 attributes.append(self.attr_classes[idx])
                 attr_text = ','.join(attributes) #label_text + self.attr_classes[idx] + ','  # + '\n'
             label_text = f"{class_names[label]}: {attr_text}" if attributes else f'{class_names[label]}'
-            res = {'class': class_names[label], 'attributes': list(attributes), 'bbox': list(bbox_int)}
+            res = {'class': class_names[label], 'attributes': list(attributes), 'bbox': [x.item() for x in list(bbox_int)]}
 
             if len(bbox) > 4:
                 label_text += f'|{bbox[-1]:.02f}'
@@ -389,7 +389,7 @@ class FashionFormer(TwoStageDetector):
                 horizontalalignment='left')
             if segms is not None:
                 color_mask = mask_colors[labels[i]]
-                res['color'] = color_mask.tolist()[0]
+                res['color'] = [x.item() for x in color_mask.tolist()[0]]
                 mask = segms[i].astype(bool)
                 img[mask] = img[mask] * 0.5 + color_mask * 0.5
                 msk[mask] = color_mask
