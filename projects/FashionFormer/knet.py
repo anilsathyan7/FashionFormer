@@ -389,7 +389,7 @@ class FashionFormer(TwoStageDetector):
                 horizontalalignment='left')
             if segms is not None:
                 color_mask = mask_colors[labels[i]]
-                res['color'] = [x.item() for x in color_mask.tolist()[0]]
+                res['color'] = color_mask.tolist()[0]
                 mask = segms[i].astype(bool)
                 img[mask] = img[mask] * 0.5 + color_mask * 0.5
                 msk[mask] = color_mask
